@@ -365,6 +365,8 @@ namespace UsefulUtilities
         {
             //generate .hlsl file
             StringBuilder fileContents = new StringBuilder();
+            fileContents.AppendLine("//Auto-generated HLSL file for shared structs, do not modify/add code as it will be overwritten");
+            fileContents.AppendLine();
             fileContents.AppendLine("#ifndef " + fileName + OUTPUT_FILE_SUFFIX);
             fileContents.AppendLine("#define " + fileName + OUTPUT_FILE_SUFFIX);
             fileContents.AppendLine();
