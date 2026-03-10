@@ -1,4 +1,4 @@
-# Shared Structs (Unity)
+# Shared Structs C#/HLSL (Unity)
 Automatically generates .hlsl equivalent struct files from your C# structs. By simply adding the [SharedStruct] attribute to any C# struct, equivalent .hlsl files will be automatically generated with no extra work. Structs are automatically re-ordered in order of dependency, and automatically #includes any referenced external struct also marked with the [SharedStruct] attribute. 
 
 Generated files are written to 'Assets/Auto Generated HLSL Structs'. For arrays, either add the fixed keyword and specify a length, or [MarshalAs] the type with a constant length value. Only 32-bit built-in types are valid. Struct functions/constructors are not converted, only variables.
