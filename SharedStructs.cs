@@ -58,12 +58,22 @@ namespace UsefulUtilities
             public Type type;
             public List<Variable> variables;
             public List<Struct> references;
+            public string fileName;
 
             public Struct(Type type)
             {
                 this.type = type;
                 variables = new List<Variable>();
                 references = new List<Struct>();
+                fileName = null;
+            }
+
+            public Struct(Type type, string fileName)
+            {
+                this.type = type;
+                variables = new List<Variable>();
+                references = new List<Struct>();
+                this.fileName = fileName;
             }
         }
 
@@ -227,8 +237,19 @@ namespace UsefulUtilities
                     //check if the field type points to another auto-generated struct
                     if (addedVariable && field.FieldType.HasAttribute(typeof(SharedStruct)))
                     {
-                        //add reference to the struct
-                        currentStruct.references.Add(new Struct(field.FieldType));
+                        //find the script file name that defines the struct and add it as a reference to the current struct
+                        string[] assetGUIDs = AssetDatabase.FindAssets(field.FieldType.Name + " t:script");
+
+                        if (assetGUIDs.Length > 0)
+                        {
+                            string scriptFilePath = AssetDatabase.GUIDToAssetPath(assetGUIDs[0]);
+                            //add type and file name reference to the struct
+                            currentStruct.references.Add(new Struct(field.FieldType, Path.GetFileNameWithoutExtension(scriptFilePath)));
+                        }
+                        else
+                        {
+                            currentStruct.references.Add(new Struct(field.FieldType));
+                        }
                     }
                 }
 
@@ -241,10 +262,10 @@ namespace UsefulUtilities
             if (structs.Count > 0)
             {
                 //replace any type references with the actual struct pointer within the file, and return a list of external references that need to be imported
-                List<Type> externalReferences = ReplaceReferences(ref structs);
+                HashSet<string> externalReferences = ReplaceReferences(ref structs);
 
                 //re-order structs to ensure dependencies are met in linear order
-                structs = structs.OrderByDependencies(x => x.references).ToList();
+                structs = structs.OrderByDependencies(x => x.references, true).ToList();
 
                 //generate output file
                 string fileName = Path.GetFileNameWithoutExtension(assetPath);
@@ -254,10 +275,10 @@ namespace UsefulUtilities
             return true;
         }
 
-        private static List<Type> ReplaceReferences(ref List<Struct> structs)
+        private static HashSet<string> ReplaceReferences(ref List<Struct> structs)
         {
             //replace any type references with the actual struct pointer within the file, and return a list of external references that need to be imported
-            List<Type> externalReferences = new List<Type>();
+            HashSet<string> externalReferences = new HashSet<string>();
             foreach (Struct s in structs)
             {
                 for (int i = 0; i < s.references.Count; i++)
@@ -270,8 +291,9 @@ namespace UsefulUtilities
                     }
                     else
                     {
-                        externalReferences.Add(s.references[i].type);
+                        externalReferences.Add(s.references[i].fileName);
                         s.references.RemoveAt(i);
+                        i--;
                     }
                 }
             }
@@ -339,7 +361,7 @@ namespace UsefulUtilities
             return type.Name;
         }
 
-        private static void WriteOutputFile(string fileName, ref List<Struct> structs, ref List<Type> externalReferences)
+        private static void WriteOutputFile(string fileName, ref List<Struct> structs, ref HashSet<string> externalReferences)
         {
             //generate .hlsl file
             StringBuilder fileContents = new StringBuilder();
@@ -347,15 +369,25 @@ namespace UsefulUtilities
             fileContents.AppendLine("#define " + fileName + OUTPUT_FILE_SUFFIX);
             fileContents.AppendLine();
 
-            foreach (Type type in externalReferences)
+            foreach (string reference in externalReferences)
             {
-                fileContents.AppendLine("#include \"" + type.Name + OUTPUT_FILE_SUFFIX + OUTPUT_FILE_EXTENSION + "\"");
+                if (reference == null)
+                {
+                    continue;
+                }
+
+                fileContents.AppendLine("#include \"" + reference + OUTPUT_FILE_SUFFIX + OUTPUT_FILE_EXTENSION + "\"");
             }
 
             fileContents.AppendLine();
 
             foreach (Struct currentStruct in structs)
             {
+                if (currentStruct.type == null)
+                {
+                    continue;
+                }
+
                 fileContents.AppendLine("struct " + currentStruct.type.Name + " {");
 
                 foreach (Variable currentVariable in currentStruct.variables)
