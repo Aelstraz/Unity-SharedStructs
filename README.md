@@ -1,7 +1,7 @@
 # Shared Structs C#/HLSL (Unity)
 Automatically generates HLSL structs/enums/constants from C# structs/enums/readonly structs marked with the [SharedStruct] attribute. The equivalent .hlsl files will be automatically generated with no extra work. Structs are automatically re-ordered in order of dependency, and automatically '#includes' any referenced external struct also marked with the [SharedStruct] attribute. Enums are automatically converted to '#define' symbols (e.g '#define MyEnumName_FieldName FieldValue'). To generate constants, use a readonly struct.
 
-Generated files are written to 'Assets/Auto Generated HLSL Structs'. When declaring arrays in a standard struct, either add the fixed keyword and specify a length, or [MarshalAs] the type with a constant length value (note: readonly structs use regular arrays). Only 32-bit built-in types are valid. Struct functions/constructors are not converted, only variables/fields.
+Generated files are written to 'Assets/Auto Generated HLSL Structs'. When declaring arrays in a standard struct, either add the fixed keyword and specify a length, or [MarshalAs] the type with a constant length value (note: readonly structs use regular arrays). Only 32-bit built-in types, vectors and other shared structs are valid types. Struct functions/constructors are not converted, only variables/fields.
 
 ## Installation
 
